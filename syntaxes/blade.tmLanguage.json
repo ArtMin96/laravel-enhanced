@@ -1,0 +1,169 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Blade",
+    "scopeName": "text.html.php.blade",
+    "fileTypes": ["blade.php"],
+    "patterns": [
+      {
+        "include": "#blade-comments"
+      },
+      {
+        "include": "#blade-echo-escaped"
+      },
+      {
+        "include": "#blade-echo-unescaped"
+      },
+      {
+        "include": "#blade-directives"
+      },
+      {
+        "include": "#blade-php-directive"
+      },
+      {
+        "include": "text.html.basic"
+      },
+      {
+        "include": "source.php"
+      }
+    ],
+    "repository": {
+      "blade-comments": {
+        "name": "comment.block.blade",
+        "begin": "{{--",
+        "end": "--}}",
+        "patterns": [
+          {
+            "match": ".",
+            "name": "comment.block.blade"
+          }
+        ]
+      },
+      "blade-echo-escaped": {
+        "name": "meta.echo.blade",
+        "begin": "{{(?!-)",
+        "end": "}}",
+        "beginCaptures": {
+          "0": {
+            "name": "punctuation.section.embedded.begin.blade"
+          }
+        },
+        "endCaptures": {
+          "0": {
+            "name": "punctuation.section.embedded.end.blade"
+          }
+        },
+        "patterns": [
+          {
+            "include": "source.php"
+          }
+        ]
+      },
+      "blade-echo-unescaped": {
+        "name": "meta.echo.unescaped.blade",
+        "begin": "{!!",
+        "end": "!!}",
+        "beginCaptures": {
+          "0": {
+            "name": "punctuation.section.embedded.begin.blade"
+          }
+        },
+        "endCaptures": {
+          "0": {
+            "name": "punctuation.section.embedded.end.blade"
+          }
+        },
+        "patterns": [
+          {
+            "include": "source.php"
+          }
+        ]
+      },
+      "blade-directives": {
+        "patterns": [
+          {
+            "name": "keyword.control.blade",
+            "match": "@(if|elseif|else|endif|unless|endunless|isset|endisset|empty|endempty|auth|endauth|guest|endguest|production|endproduction|env|endenv|hasSection|sectionMissing|component|endcomponent|slot|endslot|componentFirst|push|endpush|prepend|endprepend|once|endonce)"
+          },
+          {
+            "name": "keyword.control.loop.blade",
+            "match": "@(for|endfor|foreach|endforeach|forelse|endforelse|while|endwhile|break|continue)"
+          },
+          {
+            "name": "keyword.control.conditional.blade",
+            "match": "@(switch|case|default|endswitch|break)"
+          },
+          {
+            "name": "keyword.control.include.blade",
+            "match": "@(include|includeIf|includeWhen|includeUnless|includeFirst|each)"
+          },
+          {
+            "name": "keyword.control.stack.blade",
+            "match": "@(stack|push|endpush|prepend|endprepend)"
+          },
+          {
+            "name": "keyword.control.section.blade",
+            "match": "@(section|endsection|yield|show|stop|overwrite|append|parent)"
+          },
+          {
+            "name": "keyword.control.layout.blade",
+            "match": "@(extends|section|endsection|yield|include|stack)"
+          },
+          {
+            "name": "keyword.other.blade",
+            "match": "@(csrf|method|json|dump|dd)"
+          },
+          {
+            "name": "keyword.other.blade",
+            "match": "@(lang|choice)"
+          },
+          {
+            "name": "support.function.blade",
+            "begin": "@(\\w+)(\\()",
+            "end": "\\)",
+            "beginCaptures": {
+              "1": {
+                "name": "support.function.blade"
+              },
+              "2": {
+                "name": "punctuation.definition.parameters.begin.blade"
+              }
+            },
+            "endCaptures": {
+              "0": {
+                "name": "punctuation.definition.parameters.end.blade"
+              }
+            },
+            "patterns": [
+              {
+                "include": "source.php"
+              }
+            ]
+          },
+          {
+            "name": "support.function.blade",
+            "match": "@\\w+"
+          }
+        ]
+      },
+      "blade-php-directive": {
+        "name": "meta.embedded.block.php.blade",
+        "begin": "@php",
+        "end": "@endphp",
+        "beginCaptures": {
+          "0": {
+            "name": "keyword.control.blade"
+          }
+        },
+        "endCaptures": {
+          "0": {
+            "name": "keyword.control.blade"
+          }
+        },
+        "patterns": [
+          {
+            "include": "source.php"
+          }
+        ]
+      }
+    }
+  }

@@ -1,0 +1,43 @@
+{
+    "comments": {
+      "blockComment": ["{{--", "--}}"]
+    },
+    "brackets": [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+      ["{{", "}}"],
+      ["{!!", "!!}"]
+    ],
+    "autoClosingPairs": [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+      ["\"", "\""],
+      ["'", "'"],
+      ["{{", "}}"],
+      ["{!!", "!!}"],
+      ["{{--", "--}}"]
+    ],
+    "surroundingPairs": [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+      ["\"", "\""],
+      ["'", "'"],
+      ["{{", "}}"],
+      ["{!!", "!!}"],
+      ["{{--", "--}}"]
+    ],
+    "folding": {
+      "markers": {
+        "start": "^\\s*{{--\\s*#region",
+        "end": "^\\s*{{--\\s*#endregion"
+      }
+    },
+    "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)",
+    "indentationRules": {
+      "increaseIndentPattern": "^\\s*(@(if|elseif|else|unless|isset|empty|auth|guest|production|env|hasSection|component|slot|push|prepend|once|for|foreach|forelse|while|switch|case|default|section|php)|.*\\{\\s*$)",
+      "decreaseIndentPattern": "^\\s*(@(endif|endunless|endisset|endempty|endauth|endguest|endproduction|endenv|endcomponent|endslot|endpush|endprepend|endonce|endfor|endforeach|endforelse|endwhile|endswitch|endsection|endphp|else|elseif|case|default)|.*\\}\\s*$)"
+    }
+  }

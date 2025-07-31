@@ -1,0 +1,396 @@
+{
+  "name": "laravel-enhanced",
+  "displayName": "Laravel Enhanced",
+  "description": "Advanced Laravel development tools with intelligent completion, validation, routes, translations, and more - A complete Laravel IDE experience for VS Code",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Other",
+    "Extension Packs"
+  ],
+  "keywords": [
+    "laravel",
+    "php",
+    "blade",
+    "artisan",
+    "validation",
+    "eloquent",
+    "routes",
+    "mvc",
+    "framework",
+    "autocomplete",
+    "intellisense"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/artisan",
+    "workspaceContains:**/composer.json"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "laravel.openSettings",
+        "title": "Open Settings",
+        "category": "Laravel"
+      },
+      {
+        "command": "laravel.makeModel",
+        "title": "Make Model",
+        "category": "Laravel",
+        "icon": "$(symbol-class)"
+      },
+      {
+        "command": "laravel.makeController",
+        "title": "Make Controller",
+        "category": "Laravel",
+        "icon": "$(symbol-method)"
+      },
+      {
+        "command": "laravel.showAllRoutes",
+        "title": "Show All Routes",
+        "category": "Laravel",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "laravel.generateRouteList",
+        "title": "Generate Route List",
+        "category": "Laravel",
+        "icon": "$(export)"
+      },
+      {
+        "command": "laravel.showUnusedTranslations",
+        "title": "Show Unused Translations",
+        "category": "Laravel",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "laravel.showMissingTranslations",
+        "title": "Show Missing Translations",
+        "category": "Laravel",
+        "icon": "$(error)"
+      },
+      {
+        "command": "laravel.extractTranslation",
+        "title": "Extract Translation",
+        "category": "Laravel",
+        "icon": "$(quote)"
+      },
+      {
+        "command": "laravel.addAllRequestFields",
+        "title": "Add All Request Fields",
+        "icon": "$(add)"
+      },
+      {
+        "command": "laravel.showRequestFields",
+        "title": "Show Request Fields",
+        "category": "Laravel",
+        "icon": "$(symbol-field)"
+      },
+      {
+        "command": "laravel.generateRequestFromModel",
+        "title": "Generate Request from Model",
+        "category": "Laravel",
+        "icon": "$(symbol-constructor)"
+      },
+      {
+        "command": "laravel.showProjectInfo",
+        "title": "Show Project Information",
+        "category": "Laravel",
+        "icon": "$(info)"
+      },
+      {
+        "command": "laravel.showValidationRules",
+        "title": "Show Validation Rules",
+        "category": "Laravel",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "laravel.generateValidationFromDB",
+        "title": "Generate Validation from Database",
+        "category": "Laravel",
+        "icon": "$(database)"
+      },
+      {
+        "command": "laravel.validateAllRequests",
+        "title": "Validate All Request Files",
+        "category": "Laravel",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "laravel.addValidationParameters",
+        "title": "Add Validation Parameters",
+        "icon": "$(add)"
+      },
+      {
+        "command": "laravel.convertValidationFormat",
+        "title": "Convert Validation Format",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "laravel.sortValidationRules",
+        "title": "Sort Validation Rules",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "laravel.openRoute",
+        "title": "Open Route Definition",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "configuration": {
+      "title": "Laravel Enhanced",
+      "properties": {
+        "laravelEnhanced.inlayHints.routes.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable route inlay hints in route files showing method and URI"
+        },
+        "laravelEnhanced.codeLens.controller.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CodeLens for controller methods showing route information"
+        },
+        "laravelEnhanced.routes.showMiddleware": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show middleware information in route hints and CodeLens"
+        },
+        "laravelEnhanced.routes.showParameters": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show route parameters in hints and hover information"
+        },
+        "laravelEnhanced.inlayHints.style": {
+          "type": "string",
+          "enum": ["compact", "detailed"],
+          "default": "compact",
+          "description": "Style for inlay hints display (compact or detailed)",
+          "enumDescriptions": [
+            "Show minimal route information",
+            "Show detailed route information including middleware"
+          ]
+        },
+        "laravelEnhanced.completion.models.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable intelligent model attribute completion with type information"
+        },
+        "laravelEnhanced.completion.views.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable view name and variable completion for Blade templates"
+        },
+        "laravelEnhanced.completion.requests.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable FormRequest field completion with 'Add All Fields' feature"
+        },
+        "laravelEnhanced.completion.translations.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable translation key completion and management"
+        },
+        "laravelEnhanced.validation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable validation rules completion and diagnostics"
+        },
+        "laravelEnhanced.validation.showDescriptions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show detailed descriptions for validation rules in completion items"
+        },
+        "laravelEnhanced.validation.smartSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable context-aware validation rule suggestions based on field names"
+        },
+        "laravelEnhanced.validation.quickCombinations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show quick rule combinations for common field types (email, password, etc.)"
+        },
+        "laravelEnhanced.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable diagnostics for missing translations and validation issues"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "laravel.extractTranslation",
+          "when": "editorHasSelection && (resourceExtname == .php || resourceExtname == .blade.php)",
+          "group": "laravel@1"
+        },
+        {
+          "command": "laravel.showAllRoutes",
+          "when": "resourceExtname == .php",
+          "group": "laravel@2"
+        },
+        {
+          "command": "laravel.showRequestFields",
+          "when": "resourceExtname == .php && resourcePath =~ /Request/",
+          "group": "laravel@3"
+        },
+        {
+          "command": "laravel.showValidationRules",
+          "when": "resourceExtname == .php",
+          "group": "laravel@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "laravel.makeModel",
+          "when": "explorerResourceIsFolder && resourcePath =~ /Models/",
+          "group": "laravel@1"
+        },
+        {
+          "command": "laravel.makeController",
+          "when": "explorerResourceIsFolder && resourcePath =~ /Controllers/",
+          "group": "laravel@2"
+        },
+        {
+          "command": "laravel.showUnusedTranslations",
+          "when": "explorerResourceIsFolder",
+          "group": "laravel@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "laravel.addAllRequestFields",
+          "when": "false"
+        },
+        {
+          "command": "laravel.addValidationParameters",
+          "when": "false"
+        },
+        {
+          "command": "laravel.convertValidationFormat",
+          "when": "false"
+        },
+        {
+          "command": "laravel.sortValidationRules",
+          "when": "false"
+        },
+        {
+          "command": "laravel.openRoute",
+          "when": "false"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "laravel.extractTranslation",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus && (resourceExtname == .php || resourceExtname == .blade.php)"
+      },
+      {
+        "command": "laravel.showAllRoutes",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "laravel.showProjectInfo",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "laravel.showValidationRules",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorTextFocus"
+      }
+    ],
+    "languages": [
+      {
+        "id": "blade",
+        "aliases": ["Blade", "blade"],
+        "extensions": [".blade.php"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/blade-light.svg",
+          "dark": "./icons/blade-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "blade",
+        "scopeName": "text.html.php.blade",
+        "path": "./syntaxes/blade.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "php",
+        "path": "./snippets/laravel.json"
+      },
+      {
+        "language": "blade",
+        "path": "./snippets/blade.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "clean": "rimraf out"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.0",
+    "vsce": "^2.15.0",
+    "rimraf": "^3.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/laravel-enhanced.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/laravel-enhanced/issues"
+  },
+  "homepage": "https://github.com/your-username/laravel-enhanced#readme",
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#FF2D20",
+    "theme": "dark"
+  },
+  "badges": [
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/v/your-publisher-name.laravel-enhanced.svg",
+      "href": "https://marketplace.visualstudio.com/items?itemName=your-publisher-name.laravel-enhanced",
+      "description": "Version"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/d/your-publisher-name.laravel-enhanced.svg",
+      "href": "https://marketplace.visualstudio.com/items?itemName=your-publisher-name.laravel-enhanced",
+      "description": "Downloads"
+    }
+  ]
+}
