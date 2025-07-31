@@ -1,0 +1,250 @@
+{
+  "Laravel Route Get": {
+    "prefix": "route-get",
+    "body": [
+      "Route::get('${1:path}', [${2:Controller}::class, '${3:method}'])->name('${4:name}');"
+    ],
+    "description": "Create a GET route"
+  },
+  "Laravel Route Post": {
+    "prefix": "route-post",
+    "body": [
+      "Route::post('${1:path}', [${2:Controller}::class, '${3:method}'])->name('${4:name}');"
+    ],
+    "description": "Create a POST route"
+  },
+  "Laravel Route Resource": {
+    "prefix": "route-resource",
+    "body": [
+      "Route::resource('${1:name}', ${2:Controller}::class);"
+    ],
+    "description": "Create a resource route"
+  },
+  "Laravel Model": {
+    "prefix": "model",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\Models;",
+      "",
+      "use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;",
+      "use Illuminate\\Database\\Eloquent\\Model;",
+      "",
+      "class ${1:ModelName} extends Model",
+      "{",
+      "    use HasFactory;",
+      "",
+      "    protected \\$fillable = [",
+      "        ${2:'field'}",
+      "    ];",
+      "",
+      "    protected \\$casts = [",
+      "        ${3:'field' => 'type'}",
+      "    ];",
+      "}"
+    ],
+    "description": "Create a Laravel Model"
+  },
+  "Laravel Controller": {
+    "prefix": "controller",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\Http\\Controllers;",
+      "",
+      "use Illuminate\\Http\\Request;",
+      "",
+      "class ${1:ControllerName} extends Controller",
+      "{",
+      "    public function ${2:index}()",
+      "    {",
+      "        ${3://}",
+      "    }",
+      "}"
+    ],
+    "description": "Create a Laravel Controller"
+  },
+  "Laravel Migration": {
+    "prefix": "migration",
+    "body": [
+      "<?php",
+      "",
+      "use Illuminate\\Database\\Migrations\\Migration;",
+      "use Illuminate\\Database\\Schema\\Blueprint;",
+      "use Illuminate\\Support\\Facades\\Schema;",
+      "",
+      "return new class extends Migration",
+      "{",
+      "    public function up()",
+      "    {",
+      "        Schema::create('${1:table_name}', function (Blueprint \\$table) {",
+      "            \\$table->id();",
+      "            ${2:\\$table->string('name');}",
+      "            \\$table->timestamps();",
+      "        });",
+      "    }",
+      "",
+      "    public function down()",
+      "    {",
+      "        Schema::dropIfExists('${1:table_name}');",
+      "    }",
+      "};"
+    ],
+    "description": "Create a Laravel Migration"
+  },
+  "Laravel Request": {
+    "prefix": "request",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\Http\\Requests;",
+      "",
+      "use Illuminate\\Foundation\\Http\\FormRequest;",
+      "",
+      "class ${1:RequestName} extends FormRequest",
+      "{",
+      "    public function authorize()",
+      "    {",
+      "        return ${2:true};",
+      "    }",
+      "",
+      "    public function rules()",
+      "    {",
+      "        return [",
+      "            ${3:'field' => 'required|string|max:255'}",
+      "        ];",
+      "    }",
+      "}"
+    ],
+    "description": "Create a Laravel Form Request"
+  },
+  "Laravel Factory": {
+    "prefix": "factory",
+    "body": [
+      "<?php",
+      "",
+      "namespace Database\\Factories;",
+      "",
+      "use Illuminate\\Database\\Eloquent\\Factories\\Factory;",
+      "",
+      "class ${1:ModelName}Factory extends Factory",
+      "{",
+      "    public function definition()",
+      "    {",
+      "        return [",
+      "            ${2:'name' => \\$this->faker->name()}",
+      "        ];",
+      "    }",
+      "}"
+    ],
+    "description": "Create a Laravel Factory"
+  },
+  "Laravel Seeder": {
+    "prefix": "seeder",
+    "body": [
+      "<?php",
+      "",
+      "namespace Database\\Seeders;",
+      "",
+      "use Illuminate\\Database\\Seeder;",
+      "",
+      "class ${1:SeederName} extends Seeder",
+      "{",
+      "    public function run()",
+      "    {",
+      "        ${2://}",
+      "    }",
+      "}"
+    ],
+    "description": "Create a Laravel Seeder"
+  },
+  "Laravel Middleware": {
+    "prefix": "middleware",
+    "body": [
+      "<?php",
+      "",
+      "namespace App\\Http\\Middleware;",
+      "",
+      "use Closure;",
+      "use Illuminate\\Http\\Request;",
+      "",
+      "class ${1:MiddlewareName}",
+      "{",
+      "    public function handle(Request \\$request, Closure \\$next)",
+      "    {",
+      "        ${2:// Middleware logic}",
+      "",
+      "        return \\$next(\\$request);",
+      "    }",
+      "}"
+    ],
+    "description": "Create a Laravel Middleware"
+  },
+  "Laravel Validation Rules": {
+    "prefix": "validation",
+    "body": [
+      "'${1:field}' => '${2:required|string|max:255}'"
+    ],
+    "description": "Laravel validation rule"
+  },
+  "Laravel Route Group": {
+    "prefix": "route-group",
+    "body": [
+      "Route::group(['${1:middleware}' => '${2:auth}'], function () {",
+      "    ${3:// Routes}",
+      "});"
+    ],
+    "description": "Create a route group"
+  },
+  "Laravel Relationship - HasMany": {
+    "prefix": "has-many",
+    "body": [
+      "public function ${1:relationshipName}()",
+      "{",
+      "    return \\$this->hasMany(${2:RelatedModel}::class);",
+      "}"
+    ],
+    "description": "Create a hasMany relationship"
+  },
+  "Laravel Relationship - BelongsTo": {
+    "prefix": "belongs-to",
+    "body": [
+      "public function ${1:relationshipName}()",
+      "{",
+      "    return \\$this->belongsTo(${2:RelatedModel}::class);",
+      "}"
+    ],
+    "description": "Create a belongsTo relationship"
+  },
+  "Laravel Relationship - BelongsToMany": {
+    "prefix": "belongs-to-many",
+    "body": [
+      "public function ${1:relationshipName}()",
+      "{",
+      "    return \\$this->belongsToMany(${2:RelatedModel}::class);",
+      "}"
+    ],
+    "description": "Create a belongsToMany relationship"
+  },
+  "Laravel Collection": {
+    "prefix": "collect",
+    "body": [
+      "collect(${1:\\$array})"
+    ],
+    "description": "Create a Laravel collection"
+  },
+  "Laravel DB Query": {
+    "prefix": "db-query",
+    "body": [
+      "DB::table('${1:table}')->${2:get}()"
+    ],
+    "description": "Create a database query"
+  },
+  "Laravel Eloquent Query": {
+    "prefix": "eloquent-query",
+    "body": [
+      "${1:Model}::where('${2:column}', '${3:value}')->${4:get}()"
+    ],
+    "description": "Create an Eloquent query"
+  }
+}

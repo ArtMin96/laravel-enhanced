@@ -51,6 +51,12 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
         modelWatcher.onDidCreate(() => this.analyzeModels());
         modelWatcher.onDidDelete(() => this.analyzeModels());
 
+        // Also watch for models in app/ directory (Laravel 7 and below)
+        const appModelWatcher = vscode.workspace.createFileSystemWatcher('**/app/*.php');
+        appModelWatcher.onDidChange(() => this.analyzeModels());
+        appModelWatcher.onDidCreate(() => this.analyzeModels());
+        appModelWatcher.onDidDelete(() => this.analyzeModels());
+
         // Watch migration files
         const migrationWatcher = vscode.workspace.createFileSystemWatcher('**/database/migrations/**/*.php');
         migrationWatcher.onDidChange(() => this.analyzeMigrations());
@@ -65,49 +71,64 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
     }
 
     private analyzeProject() {
-        this.analyzeModels();
-        this.analyzeMigrations();
+        this.analyzeMigrations(); // Analyze migrations first
+        this.analyzeModels();      // Then models (to merge with migration data)
         this.analyzeViews();
     }
 
     private analyzeModels() {
         this.models.clear();
-        
-        const modelsPath = path.join(this.workspaceRoot, 'app', 'Models');
-        if (!fs.existsSync(modelsPath)) {
-            // Fallback to app/ directory for older Laravel versions
-            const appModelsPath = path.join(this.workspaceRoot, 'app');
-            if (fs.existsSync(appModelsPath)) {
-                this.scanModelDirectory(appModelsPath);
+
+        // Check both possible model locations
+        const modelsPaths = [
+            path.join(this.workspaceRoot, 'app', 'Models'),
+            path.join(this.workspaceRoot, 'app') // Fallback for older Laravel versions
+        ];
+
+        for (const modelsPath of modelsPaths) {
+            if (fs.existsSync(modelsPath)) {
+                this.scanModelDirectory(modelsPath);
             }
-            return;
         }
-        
-        this.scanModelDirectory(modelsPath);
+
+        console.log(`Found ${this.models.size} models:`, Array.from(this.models.keys()));
     }
 
     private scanModelDirectory(dir: string) {
-        const files = fs.readdirSync(dir, { withFileTypes: true });
-        
-        files.forEach(file => {
-            if (file.isDirectory()) {
-                this.scanModelDirectory(path.join(dir, file.name));
-            } else if (file.name.endsWith('.php')) {
-                const filePath = path.join(dir, file.name);
-                this.parseModelFile(filePath);
-            }
-        });
+        try {
+            const files = fs.readdirSync(dir, { withFileTypes: true });
+
+            files.forEach(file => {
+                if (file.isDirectory()) {
+                    this.scanModelDirectory(path.join(dir, file.name));
+                } else if (file.name.endsWith('.php') && !file.name.includes('Controller')) {
+                    const filePath = path.join(dir, file.name);
+                    this.parseModelFile(filePath);
+                }
+            });
+        } catch (error) {
+            console.error(`Error scanning model directory ${dir}:`, error);
+        }
     }
 
     private parseModelFile(filePath: string) {
         try {
             const content = fs.readFileSync(filePath, 'utf8');
             const modelName = path.basename(filePath, '.php');
-            
-            // Skip if not a model class
-            if (!content.includes('extends Model') && !content.includes('extends Authenticatable')) {
+
+            // More comprehensive check for model classes
+            const isModel = content.includes('extends Model') ||
+                content.includes('extends Authenticatable') ||
+                content.includes('use HasFactory') ||
+                content.includes('use Illuminate\\Database\\Eloquent\\Model') ||
+                (content.includes('class ' + modelName) &&
+                    (content.includes('$fillable') || content.includes('$table')));
+
+            if (!isModel) {
                 return;
             }
+
+            console.log(`Parsing model: ${modelName}`);
 
             const model: ModelInfo = {
                 name: modelName,
@@ -122,11 +143,13 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             if (fillableMatch) {
                 const fillableFields = this.extractArrayValues(fillableMatch[1]);
                 fillableFields.forEach(field => {
-                    model.fields.push({
-                        name: field,
-                        type: 'string', // Default type, will be refined by migration analysis
-                        nullable: false
-                    });
+                    if (field && field.trim()) {
+                        model.fields.push({
+                            name: field.trim(),
+                            type: 'string', // Default type, will be refined by migration analysis
+                            nullable: false
+                        });
+                    }
                 });
             }
 
@@ -135,13 +158,15 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             if (hiddenMatch) {
                 const hiddenFields = this.extractArrayValues(hiddenMatch[1]);
                 hiddenFields.forEach(field => {
-                    const existingField = model.fields.find(f => f.name === field);
-                    if (!existingField) {
-                        model.fields.push({
-                            name: field,
-                            type: 'string',
-                            nullable: false
-                        });
+                    if (field && field.trim()) {
+                        const existingField = model.fields.find(f => f.name === field.trim());
+                        if (!existingField) {
+                            model.fields.push({
+                                name: field.trim(),
+                                type: 'string',
+                                nullable: false
+                            });
+                        }
                     }
                 });
             }
@@ -151,15 +176,17 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             if (castsMatch) {
                 const castEntries = this.extractCasts(castsMatch[1]);
                 Object.entries(castEntries).forEach(([field, cast]) => {
-                    const existingField = model.fields.find(f => f.name === field);
-                    if (existingField) {
-                        existingField.type = this.castToType(cast);
-                    } else {
-                        model.fields.push({
-                            name: field,
-                            type: this.castToType(cast),
-                            nullable: false
-                        });
+                    if (field && cast) {
+                        const existingField = model.fields.find(f => f.name === field);
+                        if (existingField) {
+                            existingField.type = this.castToType(cast);
+                        } else {
+                            model.fields.push({
+                                name: field,
+                                type: this.castToType(cast),
+                                nullable: false
+                            });
+                        }
                     }
                 });
             }
@@ -185,18 +212,24 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             }
 
             // Add default fields that are always present
-            const defaultFields = ['id', 'created_at', 'updated_at'];
-            defaultFields.forEach(fieldName => {
-                if (!model.fields.find(f => f.name === fieldName)) {
+            const defaultFields = [
+                { name: 'id', type: 'integer' },
+                { name: 'created_at', type: 'datetime' },
+                { name: 'updated_at', type: 'datetime' }
+            ];
+
+            defaultFields.forEach(({ name, type }) => {
+                if (!model.fields.find(f => f.name === name)) {
                     model.fields.push({
-                        name: fieldName,
-                        type: fieldName === 'id' ? 'integer' : 'datetime',
+                        name,
+                        type,
                         nullable: false
                     });
                 }
             });
 
             this.models.set(modelName, model);
+            console.log(`Model ${modelName} parsed with ${model.fields.length} fields`);
         } catch (error) {
             console.error(`Error parsing model file ${filePath}:`, error);
         }
@@ -207,7 +240,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
         if (tableMatch) {
             return tableMatch[1];
         }
-        
+
         // Convert model name to snake_case table name
         return modelName
             .replace(/([A-Z])/g, '_$1')
@@ -219,11 +252,11 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
         const values: string[] = [];
         const regex = /['"`]([^'"`]+)['"`]/g;
         let match;
-        
+
         while ((match = regex.exec(arrayContent)) !== null) {
             values.push(match[1]);
         }
-        
+
         return values;
     }
 
@@ -231,11 +264,11 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
         const casts: Record<string, string> = {};
         const regex = /['"`]([^'"`]+)['"`]\s*=>\s*['"`]([^'"`]+)['"`]/g;
         let match;
-        
+
         while ((match = regex.exec(castsContent)) !== null) {
             casts[match[1]] = match[2];
         }
-        
+
         return casts;
     }
 
@@ -257,7 +290,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             'datetime': 'datetime',
             'timestamp': 'timestamp'
         };
-        
+
         return typeMapping[cast] || 'string';
     }
 
@@ -268,24 +301,24 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             'hasOneThrough', 'hasManyThrough', 'morphTo',
             'morphOne', 'morphMany', 'morphToMany'
         ];
-        
+
         relationshipMethods.forEach(method => {
             const regex = new RegExp(
                 `public\\s+function\\s+(\\w+)\\s*\\([^)]*\\)\\s*{[^}]*${method}\\s*\\(\\s*([^,)]+)`,
                 'g'
             );
             let match;
-            
+
             while ((match = regex.exec(content)) !== null) {
                 const relationshipName = match[1];
                 let relatedModel = match[2].trim();
-                
+
                 // Clean up the related model reference
                 relatedModel = relatedModel.replace(/['"`]/g, '').replace(/::class/, '');
                 if (relatedModel.includes('\\')) {
                     relatedModel = relatedModel.split('\\').pop() || relatedModel;
                 }
-                
+
                 relationships.push({
                     name: relationshipName,
                     type: method,
@@ -293,20 +326,20 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                 });
             }
         });
-        
+
         return relationships;
     }
 
     private analyzeMigrations() {
         this.migrations.clear();
-        
+
         const migrationsPath = path.join(this.workspaceRoot, 'database', 'migrations');
         if (!fs.existsSync(migrationsPath)) return;
-        
+
         const migrationFiles = fs.readdirSync(migrationsPath)
             .filter(file => file.endsWith('.php'))
             .sort(); // Process in chronological order
-        
+
         migrationFiles.forEach(file => {
             const filePath = path.join(migrationsPath, file);
             this.parseMigrationFile(filePath);
@@ -316,20 +349,20 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
     private parseMigrationFile(filePath: string) {
         try {
             const content = fs.readFileSync(filePath, 'utf8');
-            
+
             // Extract table name from Schema::create or Schema::table
             const createMatch = content.match(/Schema::create\s*\(\s*['"`]([^'"`]+)['"`]/);
             const tableMatch = content.match(/Schema::table\s*\(\s*['"`]([^'"`]+)['"`]/);
-            
+
             const tableName = createMatch?.[1] || tableMatch?.[1];
             if (!tableName) return;
-            
+
             if (!this.migrations.has(tableName)) {
                 this.migrations.set(tableName, []);
             }
-            
+
             const fields = this.migrations.get(tableName)!;
-            
+
             // Parse column definitions
             const columnPatterns = [
                 // $table->string('name', 100)->nullable()->default('value')
@@ -337,12 +370,12 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                 // $table->timestamps(), $table->softDeletes(), etc.
                 /\$table->(\w+)\s*\(\s*\)([^;]*);/g
             ];
-            
+
             columnPatterns.forEach(pattern => {
                 let match;
                 while ((match = pattern.exec(content)) !== null) {
                     const [, columnType, columnName, length, modifiers] = match;
-                    
+
                     if (columnName) {
                         // Regular column
                         const field: ModelField = {
@@ -351,7 +384,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                             nullable: modifiers?.includes('nullable()') || false,
                             default: this.extractDefault(modifiers)
                         };
-                        
+
                         // Update existing field or add new one
                         const existingIndex = fields.findIndex(f => f.name === columnName);
                         if (existingIndex >= 0) {
@@ -401,7 +434,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             'enum': 'string',
             'uuid': 'string'
         };
-        
+
         return typeMapping[migrationColumnType] || 'string';
     }
 
@@ -413,32 +446,38 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
     private handleSpecialMigrationMethods(method: string, fields: ModelField[]) {
         switch (method) {
             case 'timestamps':
-                fields.push(
-                    { name: 'created_at', type: 'timestamp', nullable: true },
-                    { name: 'updated_at', type: 'timestamp', nullable: true }
-                );
+                if (!fields.find(f => f.name === 'created_at')) {
+                    fields.push({ name: 'created_at', type: 'timestamp', nullable: true });
+                }
+                if (!fields.find(f => f.name === 'updated_at')) {
+                    fields.push({ name: 'updated_at', type: 'timestamp', nullable: true });
+                }
                 break;
             case 'softDeletes':
-                fields.push({ name: 'deleted_at', type: 'timestamp', nullable: true });
+                if (!fields.find(f => f.name === 'deleted_at')) {
+                    fields.push({ name: 'deleted_at', type: 'timestamp', nullable: true });
+                }
                 break;
             case 'rememberToken':
-                fields.push({ name: 'remember_token', type: 'string', nullable: true });
+                if (!fields.find(f => f.name === 'remember_token')) {
+                    fields.push({ name: 'remember_token', type: 'string', nullable: true });
+                }
                 break;
         }
     }
 
     private analyzeViews() {
         this.views.clear();
-        
+
         const viewsPath = path.join(this.workspaceRoot, 'resources', 'views');
         if (!fs.existsSync(viewsPath)) return;
-        
+
         this.scanViewDirectory(viewsPath, '');
     }
 
     private scanViewDirectory(dir: string, prefix: string) {
         const files = fs.readdirSync(dir, { withFileTypes: true });
-        
+
         files.forEach(file => {
             if (file.isDirectory()) {
                 const newPrefix = prefix ? `${prefix}.${file.name}` : file.name;
@@ -446,7 +485,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             } else if (file.name.endsWith('.blade.php')) {
                 const viewName = file.name.replace('.blade.php', '');
                 const fullViewName = prefix ? `${prefix}.${viewName}` : viewName;
-                
+
                 const filePath = path.join(dir, file.name);
                 this.parseViewFile(filePath, fullViewName);
             }
@@ -456,37 +495,37 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
     private parseViewFile(filePath: string, viewName: string) {
         try {
             const content = fs.readFileSync(filePath, 'utf8');
-            
+
             const view: ViewInfo = {
                 name: viewName,
                 path: filePath,
                 variables: [],
                 sections: []
             };
-            
+
             // Extract extends
             const extendsMatch = content.match(/@extends\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/);
             if (extendsMatch) {
                 view.extends = extendsMatch[1];
             }
-            
+
             // Extract sections
             const sectionMatches = content.matchAll(/@section\s*\(\s*['"`]([^'"`]+)['"`]/g);
             for (const match of sectionMatches) {
                 view.sections.push(match[1]);
             }
-            
+
             // Extract variables (this is a simplified approach)
             // Look for {{ $variable }} and {!! $variable !!}
             const variableMatches = content.matchAll(/\{\{[!]?\s*\$([a-zA-Z_][a-zA-Z0-9_]*)/g);
             const variableSet = new Set<string>();
-            
+
             for (const match of variableMatches) {
                 variableSet.add(match[1]);
             }
-            
+
             view.variables = Array.from(variableSet);
-            
+
             this.views.set(viewName, view);
         } catch (error) {
             console.error(`Error parsing view file ${filePath}:`, error);
@@ -502,108 +541,166 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
     ): vscode.CompletionItem[] {
         const lineText = document.lineAt(position).text;
         const beforeCursor = lineText.substring(0, position.character);
-        
-        // Model attribute completion
+
+        console.log('Completion triggered, before cursor:', beforeCursor);
+
+        // Model attribute completion (highest priority)
         const modelCompletion = this.provideModelAttributeCompletion(beforeCursor, document, position);
         if (modelCompletion.length > 0) {
+            console.log('Returning model completions:', modelCompletion.length);
             return modelCompletion;
         }
-        
+
         // View name completion
         const viewNameCompletion = this.provideViewNameCompletion(beforeCursor);
         if (viewNameCompletion.length > 0) {
             return viewNameCompletion;
         }
-        
+
         // View variable completion
         const viewVariableCompletion = this.provideViewVariableCompletion(beforeCursor, document, position);
         if (viewVariableCompletion.length > 0) {
             return viewVariableCompletion;
         }
-        
+
         return [];
     }
 
     private provideModelAttributeCompletion(
-        beforeCursor: string, 
-        document: vscode.TextDocument, 
+        beforeCursor: string,
+        document: vscode.TextDocument,
         position: vscode.Position
     ): vscode.CompletionItem[] {
         // Detect various patterns for model attribute access
         const patterns = [
+            // Post::create([
+            /(\w+)::create\s*\(\s*\[\s*['"`]?(\w*)$/,
+            // Post::update([
+            /(\w+)::update\s*\(\s*\[\s*['"`]?(\w*)$/,
             // $model->field
             /\$(\w+)->(\w*)$/,
             // $this->field (in model methods)
             /\$this->(\w*)$/,
-            // Model::create([
-            /(\w+)::create\s*\(\s*\[\s*['"`]?(\w*)$/,
             // $model->update([
             /\$\w+->update\s*\(\s*\[\s*['"`]?(\w*)$/,
             // $model->fill([
             /\$\w+->fill\s*\(\s*\[\s*['"`]?(\w*)$/,
-            // ['field' => value] inside arrays
+            // ['field' => value] inside arrays (when last quote is incomplete)
             /\[\s*['"`](\w*)$/
         ];
-        
-        for (const pattern of patterns) {
+
+        for (let i = 0; i < patterns.length; i++) {
+            const pattern = patterns[i];
             const match = beforeCursor.match(pattern);
             if (match) {
-                const modelName = this.inferModelFromContext(document, position, match[1]);
+                console.log(`Pattern ${i} matched:`, match);
+
+                let modelName: string | null = null;
+                let prefix = '';
+
+                if (i === 0 || i === 1) {
+                    // Static method calls like Post::create([
+                    modelName = match[1];
+                    prefix = match[2] || '';
+                } else if (i === 2) {
+                    // $model->field
+                    modelName = this.inferModelFromVariable(document, position, match[1]);
+                    prefix = match[2] || '';
+                } else if (i === 3) {
+                    // $this->field
+                    modelName = this.inferModelFromClass(document);
+                    prefix = match[1] || '';
+                } else {
+                    // Other patterns
+                    prefix = match[match.length - 1] || '';
+                    modelName = this.inferModelFromContext(document, position);
+                }
+
+                console.log(`Model name: ${modelName}, Prefix: ${prefix}`);
+
                 if (modelName) {
-                    return this.getModelAttributeCompletions(modelName, match[match.length - 1]);
+                    const completions = this.getModelAttributeCompletions(modelName, prefix);
+                    if (completions.length > 0) {
+                        return completions;
+                    }
                 }
             }
         }
-        
+
         return [];
     }
 
-    private inferModelFromContext(
-        document: vscode.TextDocument, 
-        position: vscode.Position, 
-        variableName?: string
+    private inferModelFromVariable(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        variableName: string
     ): string | null {
         const text = document.getText();
-        
+
         // Look for variable assignment patterns
-        if (variableName) {
-            const patterns = [
-                // $user = User::find()
-                new RegExp(`\\$${variableName}\\s*=\\s*(\\w+)::`),
-                // $user = new User()
-                new RegExp(`\\$${variableName}\\s*=\\s*new\\s+(\\w+)`),
-                // function method(User $user)
-                new RegExp(`function\\s+\\w+\\s*\\([^)]*\\b(\\w+)\\s+\\$${variableName}\\b`),
-                // public function method(User $user)
-                new RegExp(`public\\s+function\\s+\\w+\\s*\\([^)]*\\b(\\w+)\\s+\\$${variableName}\\b`)
-            ];
-            
-            for (const pattern of patterns) {
-                const match = text.match(pattern);
-                if (match) {
-                    return match[1];
-                }
+        const patterns = [
+            // $user = User::find()
+            new RegExp(`\\$${variableName}\\s*=\\s*(\\w+)::`),
+            // $user = new User()
+            new RegExp(`\\$${variableName}\\s*=\\s*new\\s+(\\w+)`),
+            // function method(User $user)
+            new RegExp(`function\\s+\\w+\\s*\\([^)]*\\b(\\w+)\\s+\\$${variableName}\\b`),
+            // public function method(User $user)
+            new RegExp(`public\\s+function\\s+\\w+\\s*\\([^)]*\\b(\\w+)\\s+\\$${variableName}\\b`)
+        ];
+
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                console.log(`Variable ${variableName} inferred as ${match[1]}`);
+                return match[1];
             }
         }
-        
+
+        return null;
+    }
+
+    private inferModelFromClass(document: vscode.TextDocument): string | null {
+        const text = document.getText();
+
         // Look for class context (if we're inside a model class)
         const classMatch = text.match(/class\s+(\w+)\s+extends\s+(?:Model|Authenticatable)/);
-        if (classMatch && document.fileName.includes(classMatch[1])) {
+        if (classMatch) {
+            console.log(`Inferred model from class: ${classMatch[1]}`);
             return classMatch[1];
         }
-        
+
         return null;
+    }
+
+    private inferModelFromContext(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        variableName?: string
+    ): string | null {
+        // First try variable inference if we have a variable name
+        if (variableName) {
+            const modelFromVar = this.inferModelFromVariable(document, position, variableName);
+            if (modelFromVar) return modelFromVar;
+        }
+
+        // Then try class inference
+        return this.inferModelFromClass(document);
     }
 
     private getModelAttributeCompletions(modelName: string, prefix: string): vscode.CompletionItem[] {
         const model = this.models.get(modelName);
-        if (!model) return [];
-        
+        if (!model) {
+            console.log(`Model ${modelName} not found in models:`, Array.from(this.models.keys()));
+            return [];
+        }
+
+        console.log(`Found model ${modelName} with ${model.fields.length} fields`);
         const completions: vscode.CompletionItem[] = [];
-        
+
         // Add model fields
         model.fields.forEach(field => {
-            if (field.name.startsWith(prefix)) {
+            if (!prefix || field.name.startsWith(prefix)) {
                 const item = new vscode.CompletionItem(field.name, vscode.CompletionItemKind.Field);
                 item.detail = `${field.type}${field.nullable ? ' | null' : ''}`;
                 item.documentation = new vscode.MarkdownString(
@@ -612,7 +709,10 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                     (field.default ? `**Default:** ${field.default}\n\n` : '') +
                     (field.comment ? `**Comment:** ${field.comment}` : '')
                 );
-                
+
+                // For array context, insert with quotes
+                item.insertText = `'${field.name}'`;
+
                 // Add type-specific icons
                 switch (field.type) {
                     case 'integer':
@@ -629,24 +729,26 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                     default:
                         item.kind = vscode.CompletionItemKind.Field;
                 }
-                
+
                 completions.push(item);
             }
         });
-        
+
         // Add relationships
         model.relationships.forEach(rel => {
-            if (rel.name.startsWith(prefix)) {
+            if (!prefix || rel.name.startsWith(prefix)) {
                 const item = new vscode.CompletionItem(rel.name, vscode.CompletionItemKind.Reference);
                 item.detail = `${rel.type} → ${rel.relatedModel}`;
                 item.documentation = new vscode.MarkdownString(
                     `**Relationship:** ${rel.type}\n\n` +
                     `**Related Model:** ${rel.relatedModel}`
                 );
+                item.insertText = `'${rel.name}'`;
                 completions.push(item);
             }
         });
-        
+
+        console.log(`Returning ${completions.length} completions for ${modelName}`);
         return completions;
     }
 
@@ -663,7 +765,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             // @component('viewname')
             /@component\s*\(\s*['"`]([^'"`]*)$/
         ];
-        
+
         for (const pattern of patterns) {
             const match = beforeCursor.match(pattern);
             if (match) {
@@ -671,13 +773,13 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                 return this.getViewNameCompletions(prefix);
             }
         }
-        
+
         return [];
     }
 
     private getViewNameCompletions(prefix: string): vscode.CompletionItem[] {
         const completions: vscode.CompletionItem[] = [];
-        
+
         this.views.forEach((view, viewName) => {
             if (viewName.startsWith(prefix)) {
                 const item = new vscode.CompletionItem(viewName, vscode.CompletionItemKind.File);
@@ -689,19 +791,19 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                     (view.sections.length > 0 ? `**Sections:** ${view.sections.join(', ')}\n\n` : '') +
                     (view.variables.length > 0 ? `**Variables:** ${view.variables.join(', ')}` : '')
                 );
-                
+
                 // Insert just the view name without quotes
                 item.insertText = viewName;
                 completions.push(item);
             }
         });
-        
+
         return completions;
     }
 
     private provideViewVariableCompletion(
-        beforeCursor: string, 
-        document: vscode.TextDocument, 
+        beforeCursor: string,
+        document: vscode.TextDocument,
         position: vscode.Position
     ): vscode.CompletionItem[] {
         const patterns = [
@@ -712,7 +814,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             // compact('var1', 'var2'
             /compact\s*\(\s*['"`](\w*)$/
         ];
-        
+
         for (const pattern of patterns) {
             const match = beforeCursor.match(pattern);
             if (match) {
@@ -721,7 +823,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
                 return this.getCommonViewVariables(match[1]);
             }
         }
-        
+
         return [];
     }
 
@@ -730,7 +832,7 @@ export class LaravelIntelligentCompletionProvider implements vscode.CompletionIt
             'title', 'user', 'users', 'data', 'items', 'item', 'model', 'models',
             'message', 'error', 'success', 'page', 'content', 'config'
         ];
-        
+
         return commonVariables
             .filter(variable => variable.startsWith(prefix))
             .map(variable => {

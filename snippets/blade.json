@@ -1,0 +1,257 @@
+{
+  "Blade If Statement": {
+    "prefix": "@if",
+    "body": [
+      "@if(${1:condition})",
+      "    ${2:// content}",
+      "@endif"
+    ],
+    "description": "Blade if statement"
+  },
+  "Blade If-Else Statement": {
+    "prefix": "@ifelse",
+    "body": [
+      "@if(${1:condition})",
+      "    ${2:// if content}",
+      "@else",
+      "    ${3:// else content}",
+      "@endif"
+    ],
+    "description": "Blade if-else statement"
+  },
+  "Blade Foreach Loop": {
+    "prefix": "@foreach",
+    "body": [
+      "@foreach(${1:\\$items} as ${2:\\$item})",
+      "    ${3:// content}",
+      "@endforeach"
+    ],
+    "description": "Blade foreach loop"
+  },
+  "Blade Forelse Loop": {
+    "prefix": "@forelse",
+    "body": [
+      "@forelse(${1:\\$items} as ${2:\\$item})",
+      "    ${3:// content}",
+      "@empty",
+      "    ${4:// empty content}",
+      "@endforelse"
+    ],
+    "description": "Blade forelse loop"
+  },
+  "Blade For Loop": {
+    "prefix": "@for",
+    "body": [
+      "@for(${1:\\$i} = ${2:0}; ${1:\\$i} < ${3:10}; ${1:\\$i}++)",
+      "    ${4:// content}",
+      "@endfor"
+    ],
+    "description": "Blade for loop"
+  },
+  "Blade While Loop": {
+    "prefix": "@while",
+    "body": [
+      "@while(${1:condition})",
+      "    ${2:// content}",
+      "@endwhile"
+    ],
+    "description": "Blade while loop"
+  },
+  "Blade Extends": {
+    "prefix": "@extends",
+    "body": [
+      "@extends('${1:layouts.app}')"
+    ],
+    "description": "Extend a Blade layout"
+  },
+  "Blade Section": {
+    "prefix": "@section",
+    "body": [
+      "@section('${1:content}')",
+      "    ${2:// section content}",
+      "@endsection"
+    ],
+    "description": "Define a Blade section"
+  },
+  "Blade Include": {
+    "prefix": "@include",
+    "body": [
+      "@include('${1:partials.header}')"
+    ],
+    "description": "Include a Blade template"
+  },
+  "Blade Component": {
+    "prefix": "@component",
+    "body": [
+      "@component('${1:components.alert}')",
+      "    ${2:// component content}",
+      "@endcomponent"
+    ],
+    "description": "Use a Blade component"
+  },
+  "Blade Yield": {
+    "prefix": "@yield",
+    "body": [
+      "@yield('${1:content}')"
+    ],
+    "description": "Yield a Blade section"
+  },
+  "Blade Stack": {
+    "prefix": "@stack",
+    "body": [
+      "@stack('${1:scripts}')"
+    ],
+    "description": "Display a stack"
+  },
+  "Blade Push": {
+    "prefix": "@push",
+    "body": [
+      "@push('${1:scripts}')",
+      "    ${2:// content to push}",
+      "@endpush"
+    ],
+    "description": "Push content to a stack"
+  },
+  "Blade Auth": {
+    "prefix": "@auth",
+    "body": [
+      "@auth",
+      "    ${1:// authenticated content}",
+      "@endauth"
+    ],
+    "description": "Check if user is authenticated"
+  },
+  "Blade Guest": {
+    "prefix": "@guest",
+    "body": [
+      "@guest",
+      "    ${1:// guest content}",
+      "@endguest"
+    ],
+    "description": "Check if user is a guest"
+  },
+  "Blade CSRF": {
+    "prefix": "@csrf",
+    "body": [
+      "@csrf"
+    ],
+    "description": "CSRF token field"
+  },
+  "Blade Method": {
+    "prefix": "@method",
+    "body": [
+      "@method('${1:PUT}')"
+    ],
+    "description": "HTTP method field"
+  },
+  "Blade Error": {
+    "prefix": "@error",
+    "body": [
+      "@error('${1:field}')",
+      "    <div class=\"error\">${\\$message}</div>",
+      "@enderror"
+    ],
+    "description": "Display validation error"
+  },
+  "Blade Echo": {
+    "prefix": "{{",
+    "body": [
+      "{{ ${1:\\$variable} }}"
+    ],
+    "description": "Echo escaped content"
+  },
+  "Blade Raw Echo": {
+    "prefix": "{!!",
+    "body": [
+      "{!! ${1:\\$variable} !!}"
+    ],
+    "description": "Echo unescaped content"
+  },
+  "Blade Translation": {
+    "prefix": "@lang",
+    "body": [
+      "@lang('${1:messages.welcome}')"
+    ],
+    "description": "Display translation"
+  },
+  "Blade Choice": {
+    "prefix": "@choice",
+    "body": [
+      "@choice('${1:messages.items}', ${2:\\$count})"
+    ],
+    "description": "Display pluralized translation"
+  },
+  "Blade Switch": {
+    "prefix": "@switch",
+    "body": [
+      "@switch(${1:\\$variable})",
+      "    @case(${2:'value1'})",
+      "        ${3:// case 1 content}",
+      "        @break",
+      "    @case(${4:'value2'})",
+      "        ${5:// case 2 content}",
+      "        @break",
+      "    @default",
+      "        ${6:// default content}",
+      "@endswitch"
+    ],
+    "description": "Switch statement"
+  },
+  "Blade Unless": {
+    "prefix": "@unless",
+    "body": [
+      "@unless(${1:condition})",
+      "    ${2:// content}",
+      "@endunless"
+    ],
+    "description": "Unless statement (inverse if)"
+  },
+  "Blade Isset": {
+    "prefix": "@isset",
+    "body": [
+      "@isset(${1:\\$variable})",
+      "    ${2:// content}",
+      "@endisset"
+    ],
+    "description": "Check if variable is set"
+  },
+  "Blade Empty": {
+    "prefix": "@empty",
+    "body": [
+      "@empty(${1:\\$variable})",
+      "    ${2:// content}",
+      "@endempty"
+    ],
+    "description": "Check if variable is empty"
+  },
+  "Blade PHP Block": {
+    "prefix": "@php",
+    "body": [
+      "@php",
+      "    ${1:// PHP code}",
+      "@endphp"
+    ],
+    "description": "PHP code block"
+  },
+  "Blade JSON": {
+    "prefix": "@json",
+    "body": [
+      "@json(${1:\\$variable})"
+    ],
+    "description": "Output JSON"
+  },
+  "Blade Dump": {
+    "prefix": "@dump",
+    "body": [
+      "@dump(${1:\\$variable})"
+    ],
+    "description": "Dump variable"
+  },
+  "Blade DD": {
+    "prefix": "@dd",
+    "body": [
+      "@dd(${1:\\$variable})"
+    ],
+    "description": "Dump and die"
+  }
+}
